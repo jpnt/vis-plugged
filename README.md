@@ -4,7 +4,7 @@
 
 ### To install this plugin, clone the repo to "plugins" directory and then require it
 
-vis-plug assumes the plugins directory is always: $HOME/.config/vis/plugins. There is no
+vis-plugged assumes the plugins directory is always: $HOME/.config/vis/plugins. There is no
 intent of customizing this location at the moment.
 
 ```lua
