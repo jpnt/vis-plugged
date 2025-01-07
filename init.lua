@@ -19,7 +19,36 @@ local function safe_require(plugin_name)
 	end
 end
 
--- BROKEN 07012025
+local active_jobs = {}
+
+local function handle_async_response(name, event, code, msg)
+	local job = active_jobs[name]
+	if not job then return end
+
+	if event == 'STDOUT' or event == 'STDERR' then
+		job.output = (job.output or "") .. msg
+	elseif event == 'EXIT' then
+		if code == 0 then
+			vis:info("[" .. name .. "] " .. job.description ..  ": Completed successfully!")
+		else
+			vis:info("[" .. name .. "] " .. (job.output or "No output available") ..
+					": Failed with code: " .. code)
+		end
+		active_jobs[name] = nil
+	end
+end
+
+vis.events.subscribe(vis.events.PROCESS_RESPONSE, handle_async_response)
+
+local function async_execute(name, cmd, description)
+	local fd = vis:communicate(name, cmd)
+	if not fd then
+		vis:info("Failed to start command: " .. cmd)
+		return
+	end
+	active_jobs[name] = { fd = fd, description = description, output = "" }
+end
+
 local function download_plugin(plugin_git_url)
 	local plugin_name = extract_plugin_name(plugin_git_url)
 	if not plugin_name then
@@ -30,17 +59,15 @@ local function download_plugin(plugin_git_url)
 	local plugin_path = plugins_dir .. plugin_name
 
 	if os.execute("test -d " .. plugin_path) then
-		vis:info("Plugin already installed: Updating: " .. plugin_name)
-		local result = os.execute("cd '" .. plugin_path .. "' && git pull -q")
-		if result ~= 0 then
-			vis:info("Failed to update plugin: " .. plugin_name)
-		end
+		vis:info("Plugin found: Updating: " .. plugin_name)
+		local name = "update_" .. plugin_name
+		async_execute(name, "cd '" .. plugin_path .. "' && git pull -q",
+						 "Updating " .. plugin_name)
 	else
-		vis:info("Installing plugin: " .. plugin_git_url)
-		local result = os.execute("git clone -q '" .. plugin_git_url .. "' '" .. plugin_path .. "'")
-		if result ~= 0 then
-			vis:info("Failed to clone plugin: " .. plugin_name)
-		end
+		vis:info("Installing new plugin: " .. plugin_git_url)
+		local name = "install_" .. plugin_name
+		async_execute(name, "git clone -q '" .. plugin_git_url .. "' '" ..
+				 plugin_path .. "'", "Installing " .. plugin_name)
 	end
 end
 
