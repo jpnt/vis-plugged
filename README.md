@@ -11,7 +11,7 @@ intent of customizing this location at the moment.
 plugged = require("plugins/vis-plugged")
 ```
 
-Then use it like so:
+Then configure it like so:
 
 ```lua
 plugged.add_plugin("https://github.com/lutobler/vis-commentary")
@@ -20,6 +20,8 @@ plugged.add_plugin("https://github.com/jpnt/vis-shout")
 plugged.add_plugin("https://github.com/kupospelov/vis-ctags")
 plugged.require_all_plugins()
 ```
+
+To install/update plugins use `:plugged` command.
 
 This plugin manager makes no effort to support themes. The amount of code necessary
 to do such a simple thing is not worth it for me. If you value that feature then I
